@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Echo Weaver | 回声织机</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="logo">Echo Weaver</div>
+            <div class="theme-switch" id="themeToggle" title="切换模式">🌙</div>
+            <nav>
+                <div class="nav-item active" data-tag="all">全部作品</div>
+                <div class="nav-item" data-tag="底层叙事"># 底层叙事</div>
+                <div class="nav-item" data-tag="异化"># 异化</div>
+                <div class="nav-item" data-tag="性别政治"># 性别政治</div>
+            </nav>
+            <div class="upload-area">
+                <input type="file" id="fileInput" hidden accept=".txt,.epub">
+                <button onclick="document.getElementById('fileInput').click()">+ 导入灵感 (TXT/EPUB)</button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header>
+                <input type="text" placeholder="搜索命题、金句或全文内容..." class="search-bar" id="searchBar">
+            </header>
+            <div class="book-grid" id="bookGrid">
+                </div>
+        </main>
+
+        <section class="detail-panel" id="detailPanel">
+            <div class="welcome-msg">请选择一本书籍开始编织灵感</div>
+        </section>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
