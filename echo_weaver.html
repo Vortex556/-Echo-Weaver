@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Echo Weaver | 回声织机</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/epub.js/0.3.88/epub.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #f9f6f0; --sidebar-bg: #f1ede4; --card-bg: #ffffff;
+            --text-main: #4a4a4a; --text-dim: #8c8579; --accent: #d4a373;
+            --border-color: #e2ddd3; --highlight: #fefae0; --danger: #e57373;
+        }
+        body.dark-mode {
+            --bg-color: #0f0f12; --sidebar-bg: #1a1a1f; --card-bg: #25252b;
+            --text-main: #e0e0e0; --text-dim: #71717a; --accent: #6d5dfc;
+            --border-color: #333338; --highlight: #2e2e38; --danger: #ff5252;
+        }
+        body { margin: 0; font-family: "PingFang SC", "Microsoft YaHei", serif; background: var(--bg-color); color: var(--text-main); transition: 0.4s; display: flex; height: 100vh; overflow: hidden; }
+        
+        /* 侧边栏 */
+        .sidebar { width: 240px; background: var(--sidebar-bg); padding: 30px 20px; display: flex; flex-direction: column; border-right: 1px solid var(--border-color); }
+        .logo { font-size: 24px; font-weight: bold; color: var(--accent); margin-bottom: 20px; font-style: italic; letter-spacing: 1px; }
+        .theme-switch { cursor: pointer; font-size: 20px; margin-bottom: 25px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: var(--card-bg); border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .nav-item { padding: 12px; margin-bottom: 5px; cursor: pointer; border-radius: 10px; color: var(--text-dim); transition: 0.3s; }
+        .nav-item.active { background: var(--card-bg); color: var(--accent); font-weight: bold; }
+        .upload-area button { width: 100%; padding: 14px; background: var(--accent); border: none; color: white; border-radius: 12px; cursor: pointer; margin-top: 10px; font-weight: bold; transition: 0.3s; }
+        .upload-area button:hover { opacity: 0.9; transform: translateY(-2px); }
+
+        /* 主区域 */
+        .main-content { flex: 1; padding: 40px; overflow-y: auto; background: var(--bg-color); }
+        .search-bar { width: 100%; padding: 16px 25px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 30px; margin-bottom: 30px; outline: none; color: var(--text-main); font-size: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
+        
+        /* 书架 */
+        .book-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 30px; }
+        .book-card { position: relative; background: var(--card-bg); padding: 20px; border-radius: 20px; text-align: center; cursor: pointer; transition: 0.3s; border: 1px solid transparent; }
+        .book-card:hover { transform: translateY(-8px); box-shadow: 0 12px 25px rgba(0,0,0,0.08); border-color: var(--accent); }
+        
+        .delete-btn { position: absolute; top: 10px; right: 10px; width: 25px; height: 25px; background: var(--danger); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; opacity: 0; transition: 0.3s; font-size: 14px; }
+        .book-card:hover .delete-btn { opacity: 1; }
+
+        .book-cover { width: 110px; height: 150px; background: var(--sidebar-bg); margin: 0 auto 15px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 40px; overflow: hidden; box-shadow: 2px 5px 15px rgba(0,0,0,0.1); }
+        .book-cover img { width: 100%; height: 100%; object-fit: cover; }
+        .type-tag { position: absolute; bottom: 10px; left: 10px; font-size: 10px; background: var(--highlight); padding: 2px 6px; border-radius: 4px; color: var(--accent); border: 1px solid var(--border-color); }
+
+        /* 详情面板 */
+        .detail-panel { width: 360px; background: var(--card-bg); border-left: 1px solid var(--border-color); padding: 35px; overflow-y: auto; box-shadow: -5px 0 20px rgba(0,0,0,0.02); }
+        .section-title { font-size: 12px; color: var(--text-dim); margin-top: 30px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+        .image-placeholder { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 10px; min-height: 120px; border: 2px dashed var(--border-color); border-radius: 15px; padding: 15px; margin-top: 15px; background: var(--bg-color); }
+        .mood-img-wrapper { position: relative; width: 85px; height: 85px; }
+        .mood-img-wrapper img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
+        .summary-text { font-size: 14px; line-height: 1.8; margin-top: 15px; text-align: justify; word-break: break-all; }
+    </style>
+</head>
+<body>
+
+    <aside class="sidebar">
+        <div class="logo">Echo Weaver</div>
+        <div class="theme-switch" id="themeToggle">🌙</div>
+        <nav id="tagNav">
+            <div class="nav-item active">书库资产</div>
+        </nav>
+        <div class="upload-area">
+            <input type="file" id="fileInput" hidden accept=".epub,.txt">
+            <button onclick="document.getElementById('fileInput').click()">+ 导入灵感 (EPUB/TXT)</button>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <input type="text" id="searchBar" placeholder="搜索书名、作者或关键词..." class="search-bar">
+        <div class="book-grid" id="bookGrid"></div>
+    </main>
+
+    <section class="detail-panel" id="detailPanel">
+        <div style="color:var(--text-dim); text-align:center; margin-top:100px; font-style: italic;">
+            请导入并选择一个文稿
+        </div>
+    </section>
+
+    <script>
+        let bookLibrary = [];
+
+        // 渲染书架
+        function renderBooks(data = bookLibrary) {
+            const grid = document.getElementById('bookGrid');
+            grid.innerHTML = data.map(book => `
+                <div class="book-card" onclick="showDetail(${book.id})">
+                    <div class="delete-btn" onclick="deleteBook(event, ${book.id})">✕</div>
+                    <div class="book-cover">${book.cover ? `<img src="${book.cover}">` : (book.format === 'txt' ? '📄' : '📖')}</div>
+                    <div class="book-info">
+                        <h3>${book.title}</h3>
+                        <p style="font-size:12px; color:var(--text-dim)">${book.author}</p>
+                    </div>
+                    <div class="type-tag">${book.format.toUpperCase()}</div>
+                </div>
+            `).join('');
+        }
+
+        // 删除逻辑
+        function deleteBook(event, id) {
+            event.stopPropagation();
+            if (confirm("确定删除该文稿吗？")) {
+                bookLibrary = bookLibrary.filter(b => b.id !== id);
+                renderBooks();
+                document.getElementById('detailPanel').innerHTML = `<div style="text-align:center;margin-top:100px;color:var(--text-dim)">已从织机撤回</div>`;
+            }
+        }
+
+        // 显示详情
+        function showDetail(id) {
+            const book = bookLibrary.find(b => b.id === id);
+            if (!book) return;
+            const panel = document.getElementById('detailPanel');
+            panel.innerHTML = `
+                <h2 style="margin:0; color:var(--accent); font-style:italic;">${book.title}</h2>
+                <p style="color:var(--text-dim); font-size:14px; margin-top:5px;">来源/作者：${book.author}</p>
+                <div class="section-title">文本摘要</div>
+                <div class="summary-text">${book.summary}</div>
+                <div class="section-title">意象看板 (Ctrl+V)</div>
+                <div class="image-placeholder" id="dropZone">粘贴截图或灵感图</div>
+            `;
+        }
+
+        // 文件导入逻辑 (含自动编码修复)
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const format = file.name.split('.').pop().toLowerCase();
+            let newBook = { id: Date.now(), title: file.name.replace(`.${format}`, ''), author: "未知", format: format, summary: "", cover: null };
+
+            const reader = new FileReader();
+
+            if (format === 'txt') {
+                // 解决乱码核心逻辑：先尝试 UTF-8，如果不成再尝试 GBK
+                reader.onload = function(e) {
+                    let content = e.target.result;
+                    // 检查是否包含乱码特征符号
+                    if (content.includes('')) {
+                        const reReader = new FileReader();
+                        reReader.onload = function(e) {
+                            processTxt(e.target.result);
+                        };
+                        reReader.readAsText(file, "GBK");
+                    } else {
+                        processTxt(content);
+                    }
+                };
+                
+                function processTxt(text) {
+                    newBook.summary = text.substring(0, 1000) + (text.length > 1000 ? "..." : "");
+                    newBook.author = "本地文稿";
+                    bookLibrary.push(newBook);
+                    renderBooks();
+                }
+                reader.readAsText(file, "UTF-8");
+
+            } else if (format === 'epub') {
+                reader.onload = async function(e) {
+                    try {
+                        const epub = ePub(e.target.result);
+                        const meta = await epub.loaded.metadata;
+                        newBook.title = meta.title || newBook.title;
+                        newBook.author = meta.creator || "未知作者";
+                        newBook.summary = meta.description || "EPUB 内容已成功导入。";
+                        try { newBook.cover = await epub.coverUrl(); } catch(err) {}
+                    } catch (err) { console.warn("EPUB解析跳过"); }
+                    bookLibrary.push(newBook);
+                    renderBooks();
+                };
+                reader.readAsArrayBuffer(file);
+            }
+        });
+
+        // 搜索功能
+        document.getElementById('searchBar').addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            renderBooks(bookLibrary.filter(b => b.title.toLowerCase().includes(term)));
+        });
+
+        // 主题切换
+        document.getElementById('themeToggle').addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            document.getElementById('themeToggle').innerText = document.body.classList.contains('dark-mode') ? '☀️' : '🌙';
+        });
+
+        // 粘贴图片
+        document.addEventListener('paste', (e) => {
+            const dropZone = document.getElementById('dropZone');
+            if (!dropZone) return;
+            const items = e.clipboardData.items;
+            for (let item of items) {
+                if (item.type.indexOf('image') !== -1) {
+                    const blob = item.getAsFile();
+                    const url = URL.createObjectURL(blob);
+                    if (dropZone.innerText.includes('粘贴')) dropZone.innerHTML = '';
+                    const div = document.createElement('div');
+                    div.className = 'mood-img-wrapper';
+                    div.innerHTML = `<img src="${url}">`;
+                    dropZone.appendChild(div);
+                }
+            }
+        });
+
+        renderBooks();
+    </script>
+</body>
+</html>

@@ -1,72 +1,127 @@
-// 数据模型
-let bookLibrary = [
-    {
-        id: 1,
-        title: "我的妓女生涯",
-        author: "康素珍 等",
-        tags: ["底层叙事", "异化"],
-        summary: "关于身体如何被社会结构异化为商品的纪实探讨。",
-        snippets: ["我这辈子，就像是被推着走的..."]
-    }
-];
-
-// 初始化
-const bookGrid = document.getElementById('bookGrid');
-const detailPanel = document.getElementById('detailPanel');
-const themeToggle = document.getElementById('themeToggle');
+let bookLibrary = [];
 
 // 渲染书架
 function renderBooks(data = bookLibrary) {
-    bookGrid.innerHTML = data.map(book => `
+    const grid = document.getElementById('bookGrid');
+    grid.innerHTML = data.map(book => `
         <div class="book-card" onclick="showDetail(${book.id})">
-            <div class="book-cover">📖</div>
+            <div class="delete-btn" onclick="deleteBook(event, ${book.id})">✕</div>
+            <div class="book-cover">${book.cover ? `<img src="${book.cover}">` : (book.format === 'txt' ? '📄' : '📖')}</div>
             <div class="book-info">
-                <h3>${book.title}</h3>
+                <h3 style="font-size:16px; margin:5px 0">${book.title}</h3>
                 <p style="font-size:12px; color:var(--text-dim)">${book.author}</p>
             </div>
         </div>
     `).join('');
 }
 
+// 删除功能
+function deleteBook(event, id) {
+    event.stopPropagation();
+    if (confirm("确定要删除这个灵感吗？")) {
+        bookLibrary = bookLibrary.filter(b => b.id !== id);
+        renderBooks();
+        document.getElementById('detailPanel').innerHTML = '<div class="empty-state">已移除</div>';
+    }
+}
+
 // 显示详情
 function showDetail(id) {
     const book = bookLibrary.find(b => b.id === id);
-    detailPanel.innerHTML = `
-        <h2>${book.title}</h2>
-        <p style="color:var(--text-dim)">${book.author}</p>
-        <div class="section-title">核心命题</div>
-        <p style="font-size:14px">${book.summary}</p>
-        <div class="section-title">意象看板 (粘贴图片)</div>
-        <div class="image-placeholder" id="dropZone">Ctrl+V 粘贴</div>
-        <div class="section-title">金句卡片</div>
-        ${book.snippets.map(s => `<div class="snippet-card">${s}</div>`).join('')}
+    if (!book) return;
+    const panel = document.getElementById('detailPanel');
+    panel.innerHTML = `
+        <h2 style="color:var(--accent); margin:0;">${book.title}</h2>
+        <p style="color:var(--text-dim); font-size:14px;">来源：${book.author}</p>
+        <div style="margin-top:25px; font-weight:bold; border-bottom:1px solid var(--border-color); padding-bottom:5px; font-size:12px; color:var(--text-dim);">文本摘要</div>
+        <div class="summary-text">${book.summary}</div>
+        <div style="margin-top:25px; font-weight:bold; font-size:12px; color:var(--text-dim);">意象看版 (Ctrl+V 粘贴)</div>
+        <div class="image-grid" id="dropZone"></div>
     `;
 }
 
-// 主题切换
-themeToggle.addEventListener('click', () => {
-    document.body.classList.toggle('dark-mode');
-    const isDark = document.body.classList.contains('dark-mode');
-    themeToggle.innerText = isDark ? '☀️' : '🌙';
+// 文件解析核心逻辑
+document.getElementById('fileInput').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const format = file.name.split('.').pop().toLowerCase();
+    const reader = new FileReader();
+
+    if (format === 'txt') {
+        reader.onload = function(event) {
+            const buffer = event.target.result;
+            const view = new Uint8Array(buffer);
+            
+            // 自动检测并解决乱码 (UTF-8 vs GBK)
+            let encoding = 'utf-8';
+            try {
+                new TextDecoder('utf-8', { fatal: true }).decode(view);
+            } catch (err) {
+                encoding = 'gbk';
+            }
+
+            const decoder = new TextDecoder(encoding);
+            const text = decoder.decode(view);
+            
+            bookLibrary.push({
+                id: Date.now(),
+                title: file.name.replace('.txt',''),
+                author: "本地文稿 (" + encoding.toUpperCase() + ")",
+                format: 'txt',
+                summary: text.substring(0, 800) + (text.length > 800 ? "..." : ""),
+                cover: null
+            });
+            renderBooks();
+        };
+        reader.readAsArrayBuffer(file);
+    } else if (format === 'epub') {
+        reader.onload = async function(event) {
+            try {
+                const epub = ePub(event.target.result);
+                const meta = await epub.loaded.metadata;
+                const cover = await epub.coverUrl().catch(() => null);
+                bookLibrary.push({
+                    id: Date.now(),
+                    title: meta.title || file.name,
+                    author: meta.creator || "未知作者",
+                    format: 'epub',
+                    summary: meta.description || "EPUB 内容解析成功。",
+                    cover: cover
+                });
+                renderBooks();
+            } catch (err) {
+                alert("EPUB 解析失败，请检查文件格式。");
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
+    e.target.value = ''; // 允许重复上传
 });
 
-// 图片粘贴逻辑
+// 粘贴图片
 document.addEventListener('paste', (e) => {
+    const dropZone = document.getElementById('dropZone');
+    if (!dropZone) return;
     const items = e.clipboardData.items;
     for (let item of items) {
         if (item.type.indexOf('image') !== -1) {
-            const blob = item.getAsFile();
-            const url = URL.createObjectURL(blob);
-            const dropZone = document.getElementById('dropZone');
-            if (dropZone) {
-                if (dropZone.innerText.includes('粘贴')) dropZone.innerHTML = '';
-                const div = document.createElement('div');
-                div.className = 'mood-img-wrapper';
-                div.innerHTML = `<img src="${url}">`;
-                dropZone.appendChild(div);
-            }
+            const url = URL.createObjectURL(item.getAsFile());
+            const img = document.createElement('img');
+            img.src = url;
+            dropZone.appendChild(img);
         }
     }
 });
 
-renderBooks();
+// 主题切换
+document.getElementById('themeToggle').addEventListener('click', () => {
+    document.body.classList.toggle('dark-mode');
+    document.getElementById('themeToggle').innerText = document.body.classList.contains('dark-mode') ? '☀️' : '🌙';
+});
+
+// 搜索
+document.getElementById('searchBar').addEventListener('input', (e) => {
+    const term = e.target.value.toLowerCase();
+    renderBooks(bookLibrary.filter(b => b.title.toLowerCase().includes(term)));
+});

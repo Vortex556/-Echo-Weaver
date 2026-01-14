@@ -5,36 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Echo Weaver | 回声织机</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/epub.js/0.3.88/epub.min.js"></script>
 </head>
 <body>
-    <div class="app-container">
-        <aside class="sidebar">
-            <div class="logo">Echo Weaver</div>
-            <div class="theme-switch" id="themeToggle" title="切换模式">🌙</div>
-            <nav>
-                <div class="nav-item active" data-tag="all">全部作品</div>
-                <div class="nav-item" data-tag="底层叙事"># 底层叙事</div>
-                <div class="nav-item" data-tag="异化"># 异化</div>
-                <div class="nav-item" data-tag="性别政治"># 性别政治</div>
-            </nav>
-            <div class="upload-area">
-                <input type="file" id="fileInput" hidden accept=".txt,.epub">
-                <button onclick="document.getElementById('fileInput').click()">+ 导入灵感 (TXT/EPUB)</button>
+
+    <aside class="sidebar">
+        <div class="logo">Echo Weaver</div>
+        <div class="theme-switch" id="themeToggle">🌙</div>
+        <nav>
+            <div class="nav-item active">全量灵感</div>
+        </nav>
+        <div class="upload-area">
+            <input type="file" id="fileInput" hidden accept=".epub,.txt">
+            <button onclick="document.getElementById('fileInput').click()">+ 导入灵感 (EPUB/TXT)</button>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <input type="text" id="searchBar" placeholder="搜索书名、内容或关键词..." class="search-bar">
+        <div class="book-grid" id="bookGrid">
             </div>
-        </aside>
+    </main>
 
-        <main class="main-content">
-            <header>
-                <input type="text" placeholder="搜索命题、金句或全文内容..." class="search-bar" id="searchBar">
-            </header>
-            <div class="book-grid" id="bookGrid">
-                </div>
-        </main>
+    <section class="detail-panel" id="detailPanel">
+        <div class="empty-state">点选书籍以开启叙事编织</div>
+    </section>
 
-        <section class="detail-panel" id="detailPanel">
-            <div class="welcome-msg">请选择一本书籍开始编织灵感</div>
-        </section>
-    </div>
     <script src="script.js"></script>
 </body>
 </html>
