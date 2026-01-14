@@ -1,8 +1,10 @@
-let bookLibrary = [];
+// 初始化：从本地存储加载数据，如果没有则为空数组
+let bookLibrary = JSON.parse(localStorage.getItem('weaver_library')) || [];
 
 // 渲染书架
 function renderBooks(data = bookLibrary) {
     const grid = document.getElementById('bookGrid');
+    if (!grid) return;
     grid.innerHTML = data.map(book => `
         <div class="book-card" onclick="showDetail(${book.id})">
             <div class="delete-btn" onclick="deleteBook(event, ${book.id})">✕</div>
@@ -15,11 +17,17 @@ function renderBooks(data = bookLibrary) {
     `).join('');
 }
 
-// 删除功能
+// 持久化保存函数
+function saveToLocal() {
+    localStorage.setItem('weaver_library', JSON.stringify(bookLibrary));
+}
+
+// 删除功能（同步更新本地存储）
 function deleteBook(event, id) {
     event.stopPropagation();
     if (confirm("确定要删除这个灵感吗？")) {
         bookLibrary = bookLibrary.filter(b => b.id !== id);
+        saveToLocal(); // 保存状态
         renderBooks();
         document.getElementById('detailPanel').innerHTML = '<div class="empty-state">已移除</div>';
     }
@@ -52,14 +60,10 @@ document.getElementById('fileInput').addEventListener('change', function(e) {
         reader.onload = function(event) {
             const buffer = event.target.result;
             const view = new Uint8Array(buffer);
-            
-            // 自动检测并解决乱码 (UTF-8 vs GBK)
             let encoding = 'utf-8';
             try {
                 new TextDecoder('utf-8', { fatal: true }).decode(view);
-            } catch (err) {
-                encoding = 'gbk';
-            }
+            } catch (err) { encoding = 'gbk'; }
 
             const decoder = new TextDecoder(encoding);
             const text = decoder.decode(view);
@@ -67,11 +71,12 @@ document.getElementById('fileInput').addEventListener('change', function(e) {
             bookLibrary.push({
                 id: Date.now(),
                 title: file.name.replace('.txt',''),
-                author: "本地文稿 (" + encoding.toUpperCase() + ")",
+                author: "文稿 (" + encoding.toUpperCase() + ")",
                 format: 'txt',
                 summary: text.substring(0, 800) + (text.length > 800 ? "..." : ""),
                 cover: null
             });
+            saveToLocal(); // 新增导入后立即保存
             renderBooks();
         };
         reader.readAsArrayBuffer(file);
@@ -86,17 +91,18 @@ document.getElementById('fileInput').addEventListener('change', function(e) {
                     title: meta.title || file.name,
                     author: meta.creator || "未知作者",
                     format: 'epub',
-                    summary: meta.description || "EPUB 内容解析成功。",
+                    summary: meta.description || "电子书解析成功。",
                     cover: cover
                 });
+                saveToLocal(); // 新增导入后立即保存
                 renderBooks();
             } catch (err) {
-                alert("EPUB 解析失败，请检查文件格式。");
+                alert("EPUB 解析失败。");
             }
         };
         reader.readAsArrayBuffer(file);
     }
-    e.target.value = ''; // 允许重复上传
+    e.target.value = ''; 
 });
 
 // 粘贴图片
@@ -125,3 +131,6 @@ document.getElementById('searchBar').addEventListener('input', (e) => {
     const term = e.target.value.toLowerCase();
     renderBooks(bookLibrary.filter(b => b.title.toLowerCase().includes(term)));
 });
+
+// 页面加载时自动执行一次渲染
+renderBooks();
