@@ -8,29 +8,63 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/epub.js/0.3.88/epub.min.js"></script>
 </head>
 <body>
+    <nav class="sidebar">
+        <div class="brand">织</div>
+        <div class="nav-icons">
+            <button class="icon-btn active" onclick="switchTab('chat')" title="灵感编织">✨</button>
+            <button class="icon-btn" onclick="switchTab('library')" title="资产书库">📚</button>
+            <button class="icon-btn" onclick="openSettings()" title="内核配置">⚙️</button>
+        </div>
+        <button class="icon-btn" id="themeToggle" style="margin-top: auto;">🌙</button>
+    </nav>
 
-    <aside class="sidebar">
-        <div class="logo">Echo Weaver</div>
-        <div class="theme-switch" id="themeToggle">🌙</div>
-        <nav>
-            <div class="nav-item active">全量灵感</div>
-        </nav>
-        <div class="upload-area">
-            <input type="file" id="fileInput" hidden accept=".epub,.txt">
-            <button onclick="document.getElementById('fileInput').click()">+ 导入灵感 (EPUB/TXT)</button>
+    <main class="main-viewer">
+        <div id="chatTab" class="content-panel active">
+            <div id="chatHistory" class="chat-container">
+                <div class="msg-ai">内核已注入，回声就绪。请告诉我你的灵感残片。</div>
+            </div>
+            <div class="input-wrapper">
+                <textarea id="userInput" placeholder="在此输入灵感碎片... (Shift+Enter 换行)"></textarea>
+                <button id="sendBtn" class="weave-send-btn">编织</button>
+            </div>
+        </div>
+
+        <div id="libraryTab" class="content-panel">
+            <header class="shelf-header">
+                <h2>全量资产库</h2>
+                <input type="file" id="fileInput" hidden accept=".txt">
+                <button class="action-btn-outline" onclick="document.getElementById('fileInput').click()">+ 导入文稿</button>
+            </header>
+            <div id="bookGrid" class="book-grid"></div>
+        </div>
+    </main>
+
+    <aside class="side-panel" id="detailPanel">
+        <div class="empty-hint">
+            <div style="font-size: 40px; margin-bottom: 20px; opacity: 0.2;">📜</div>
+            等待编织物被选中
         </div>
     </aside>
 
-    <main class="main-content">
-        <input type="text" id="searchBar" placeholder="搜索书名、内容或关键词..." class="search-bar">
-        <div class="book-grid" id="bookGrid">
+    <div id="settingsModal" class="modal-overlay">
+        <div class="modal-card">
+            <h3>织机内核配置</h3>
+            <div class="form-group">
+                <label>密钥 API KEY</label>
+                <input type="password" id="apiKey" placeholder="sk-...">
             </div>
-    </main>
+            <div class="form-group">
+                <label>请求基址 API BASE</label>
+                <input type="text" id="apiBase" placeholder="https://api.deepseek.com">
+            </div>
+            <div class="modal-btns">
+                <button onclick="saveSettings()" class="action-btn">保存配置</button>
+                <button onclick="closeSettings()" class="text-btn">取消</button>
+            </div>
+        </div>
+    </div>
 
-    <section class="detail-panel" id="detailPanel">
-        <div class="empty-state">点选书籍以开启叙事编织</div>
-    </section>
-
+    <div id="readerOverlay"></div>
     <script src="script.js"></script>
 </body>
 </html>
